@@ -1,0 +1,46 @@
+name: "autopulse"
+version: "1.0.0"
+config-version: 2
+
+profile: "autopulse"
+
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# ──────────────────────────────────────────
+# Configuración por capa
+# ──────────────────────────────────────────
+models:
+  autopulse:
+    bronze:
+      +schema: bronze
+      +materialized: view          # Bronze son vistas sobre raw_listings
+      +tags: ["bronze"]
+    silver:
+      +schema: silver
+      +materialized: incremental   # Silver crece incrementalmente
+      +on_schema_change: append_new_columns
+      +tags: ["silver"]
+    gold:
+      +schema: gold
+      +materialized: table         # Gold se recalcula completo
+      +tags: ["gold"]
+      +post-hook: "ANALYZE {{ this }}"   # Actualiza estadísticas para el query planner
+
+# ──────────────────────────────────────────
+# Variables globales
+# ──────────────────────────────────────────
+vars:
+  autopulse:
+    # Ventana de datos activos (anuncios vistos en últimos N días se consideran activos)
+    active_window_days: 3
+    # Outliers de precio (fuera de rango se excluyen de métricas)
+    price_min_usd: 500
+    price_max_usd: 500000
+    # Año mínimo de vehículos a incluir
+    min_vehicle_year: 1995

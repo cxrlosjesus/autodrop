@@ -1,0 +1,24 @@
+autopulse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DATABASE_HOST', 'localhost') }}"
+      port: 5432
+      user: "{{ env_var('DATABASE_USER', 'autopulse') }}"
+      password: "{{ env_var('DATABASE_PASSWORD', 'autopulse_secret') }}"
+      dbname: "{{ env_var('DATABASE_NAME', 'autopulse') }}"
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+
+    prod:
+      type: postgres
+      host: "{{ env_var('DATABASE_HOST') }}"
+      port: 5432
+      user: "{{ env_var('DATABASE_USER') }}"
+      password: "{{ env_var('DATABASE_PASSWORD') }}"
+      dbname: "{{ env_var('DATABASE_NAME') }}"
+      schema: public
+      threads: 8
+      keepalives_idle: 0

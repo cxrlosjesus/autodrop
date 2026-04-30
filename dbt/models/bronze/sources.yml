@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    description: "Raw data sin transformar, tal como viene del scraper."
+    
+    freshness:
+      warn_after: {count: 30, period: hour}
+      error_after: {count: 48, period: hour}
+
+    tables:
+      - name: raw_listings
+        description: "Un registro por cada anuncio scrapeado. Incluye raw_data JSONB completo."
+        loaded_at_field: scraped_at
+        columns:
+          - name: id
+            description: "Primary key autoincremental"
+            tests: [not_null, unique]
+          - name: source_site
+            description: "Sitio de origen del anuncio"
+            tests: [not_null]
+          - name: source_url
+            description: "URL exacta del anuncio"
+            tests: [not_null]
+          - name: raw_data
+            description: "JSONB con todos los campos extraídos por el spider"
+            tests: [not_null]
+          - name: scraped_at
+            description: "Timestamp del scraping"
+            tests: [not_null]
+
+      - name: scrape_runs
+        description: "Log de cada ejecución de spider."
+        columns:
+          - name: id
+            tests: [not_null, unique]

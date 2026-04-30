@@ -1,0 +1,132 @@
+version: "3.9"
+
+services:
+
+  # ──────────────────────────────────────────
+  # PostgreSQL — Base de datos principal
+  # ──────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: autopulse_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-autopulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autopulse_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-autopulse}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d   # Se ejecuta al crear el DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autopulse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ──────────────────────────────────────────
+  # pgAdmin — UI para explorar PostgreSQL
+  # ──────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:8.6
+    container_name: autopulse_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@autopulse.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ──────────────────────────────────────────
+  # Scrapy — Motor de scraping
+  # ──────────────────────────────────────────
+  scrapy:
+    build:
+      context: ./scrapers
+      dockerfile: Dockerfile
+    container_name: autopulse_scrapy
+    restart: "no"       # Prefect lo invoca cuando toca
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autopulse}:${POSTGRES_PASSWORD:-autopulse_secret}@postgres:5432/${POSTGRES_DB:-autopulse}
+      SCRAPY_SETTINGS_MODULE: settings
+      PYTHONPATH: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./scrapers:/app
+      - ./logs:/app/logs
+    working_dir: /app
+
+  # ──────────────────────────────────────────
+  # dbt — Transformaciones Bronze→Silver→Gold
+  # ──────────────────────────────────────────
+  dbt:
+    build:
+      context: ./dbt
+      dockerfile: Dockerfile
+    container_name: autopulse_dbt
+    restart: "no"       # Prefect lo invoca después de cada scraping
+    environment:
+      DBT_PROFILES_DIR: /app
+      DATABASE_HOST: postgres
+      DATABASE_USER: ${POSTGRES_USER:-autopulse}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-autopulse_secret}
+      DATABASE_NAME: ${POSTGRES_DB:-autopulse}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./dbt:/app
+
+  # ──────────────────────────────────────────
+  # Prefect — Orquestación y scheduling
+  # ──────────────────────────────────────────
+  prefect:
+    image: prefecthq/prefect:2-latest
+    container_name: autopulse_prefect
+    restart: unless-stopped
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "4200:4200"
+    environment:
+      PREFECT_UI_API_URL: http://localhost:4200/api
+    volumes:
+      - prefect_data:/root/.prefect
+
+  # ──────────────────────────────────────────
+  # Prefect Worker — Ejecuta los flows
+  # ──────────────────────────────────────────
+  prefect-worker:
+    build:
+      context: ./flows
+      dockerfile: Dockerfile
+    container_name: autopulse_worker
+    restart: unless-stopped
+    command: prefect worker start --pool autopulse-pool
+    environment:
+      PREFECT_API_URL: http://prefect:4200/api
+      DATABASE_URL: postgresql://${POSTGRES_USER:-autopulse}:${POSTGRES_PASSWORD:-autopulse_secret}@postgres:5432/${POSTGRES_DB:-autopulse}
+    depends_on:
+      - prefect
+      - postgres
+    volumes:
+      - ./flows:/app
+      - ./scrapers:/scrapers
+      - ./dbt:/dbt
+      - ./logs:/logs
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  prefect_data:
+
+networks:
+  default:
+    name: autopulse_network
