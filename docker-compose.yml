@@ -113,6 +113,10 @@ services:
     environment:
       PREFECT_API_URL: http://prefect:4200/api
       DATABASE_URL: postgresql://${POSTGRES_USER:-autopulse}:${POSTGRES_PASSWORD:-autopulse_secret}@postgres:5432/${POSTGRES_DB:-autopulse}
+      DATABASE_HOST: postgres
+      DATABASE_USER: ${POSTGRES_USER:-autopulse}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-autopulse_secret}
+      DATABASE_NAME: ${POSTGRES_DB:-autopulse}
     depends_on:
       - prefect
       - postgres
