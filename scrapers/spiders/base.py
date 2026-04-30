@@ -80,6 +80,7 @@ class AutoPulseSpider(scrapy.Spider):
             meta={
                 "playwright": True,
                 "playwright_include_page": True,
+                "playwright_context": "default",
                 "playwright_page_methods": kwargs.get("page_methods", []),
                 "playwright_page_goto_kwargs": {
                     "wait_until": "domcontentloaded",

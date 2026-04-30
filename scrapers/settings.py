@@ -47,15 +47,39 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-blink-features=AutomationControlled",
+        "--disable-infobars",
+        "--window-size=1920,1080",
     ]
 }
 PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000   # 30 segundos
 PLAYWRIGHT_MAX_PAGES_PER_CONTEXT = 4
 
+# Contexto del browser — imitar un usuario real en Panamá
+PLAYWRIGHT_CONTEXTS = {
+    "default": {
+        "user_agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        ),
+        "viewport": {"width": 1920, "height": 1080},
+        "locale": "es-PA",
+        "timezone_id": "America/Panama",
+        "java_script_enabled": True,
+        "ignore_https_errors": True,
+        "extra_http_headers": {
+            "Accept-Language": "es-PA,es;q=0.9,en-US;q=0.8",
+            "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        },
+    }
+}
+
 # Bloquear recursos que no aportan datos: imágenes, videos, fuentes, CSS
 # Reduce el tiempo de carga de cada página en ~80% y evita que el spider se congele
 def _abort_unnecessary_resources(request):
-    return request.resource_type in ("image", "media", "font", "stylesheet", "ping")
+    return request.resource_type in ("image", "media", "font", "ping")
 
 PLAYWRIGHT_ABORT_REQUEST = _abort_unnecessary_resources
 
