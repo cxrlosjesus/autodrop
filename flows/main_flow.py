@@ -30,13 +30,12 @@ from prefect.task_runners import ConcurrentTaskRunner
 SCRAPERS_DIR = Path(os.getenv("SCRAPERS_DIR", "/scrapers"))
 DBT_DIR      = Path(os.getenv("DBT_DIR", "/dbt"))
 
-# Spiders disponibles (en orden de prioridad)
+# Spiders disponibles (en orden de ejecución)
 SPIDERS = [
-    "encuentra24",   # Prioridad 1 — mayor volumen
-    "clasificar",    # Prioridad 2 — pendiente
-    "carspot",       # Prioridad 3 — pendiente
-    "automarket",    # Prioridad 4 — listo
-    "champion",      # Prioridad 5 — listo
+    "encuentra24",   # HTTP puro, más rápido
+    "carspot",       # Playwright
+    "automarket",    # Playwright
+    "champion",      # Playwright
 ]
 
 
@@ -176,20 +175,14 @@ def autopulse_daily_pipeline():
     logger = get_run_logger()
     logger.info("🚀 AutoPulse Daily Pipeline iniciado")
 
-    # Lanzar todos los spiders en paralelo
-    spider_futures = [
-        run_spider.submit(spider_name)
-        for spider_name in SPIDERS
-    ]
-
-    # Esperar resultados (los errores de un spider no bloquean los demás)
+    # Ejecutar spiders secuencialmente para no saturar RAM con Playwright
     spider_results = []
-    for future in spider_futures:
+    for spider_name in SPIDERS:
         try:
-            result = future.result()
+            result = run_spider(spider_name)
             spider_results.append(result)
         except Exception as e:
-            logger.warning(f"⚠️ Un spider falló pero el pipeline continúa: {e}")
+            logger.warning(f"⚠️ Spider {spider_name} falló pero el pipeline continúa: {e}")
 
     if not spider_results:
         logger.error("❌ Todos los spiders fallaron. Abortando pipeline.")
