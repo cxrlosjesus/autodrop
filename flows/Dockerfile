@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir \
     tenacity==8.3.0 \
     loguru==0.7.2 \
     pydantic==2.7.1 \
-    playwright-stealth==1.0.6
+    playwright-stealth==1.0.6 \
+    brotli==1.1.0
 
 # dbt para transformaciones
 RUN pip install --no-cache-dir dbt-postgres==1.7.*
