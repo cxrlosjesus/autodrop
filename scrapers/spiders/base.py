@@ -86,6 +86,7 @@ class AutoPulseSpider(scrapy.Spider):
                     "wait_until": "domcontentloaded",
                     "timeout": nav_timeout,
                 },
+                "handle_httpstatus_list": [403, 429, 503],
                 **kwargs.get("meta", {})
             },
             errback=self.handle_error,
