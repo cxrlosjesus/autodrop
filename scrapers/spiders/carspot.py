@@ -32,7 +32,8 @@ class CarspotSpider(AutoPulseSpider):
     custom_settings = {
         "DOWNLOAD_DELAY": 2.0,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 2,
-        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 45000,
+        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 30000,
+        "CLOSESPIDER_TIMEOUT": 900,    # Máximo 15 minutos
         "HTTPCACHE_ENABLED": False,
     }
 

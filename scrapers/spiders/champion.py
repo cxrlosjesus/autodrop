@@ -28,7 +28,8 @@ class ChampionSpider(AutoPulseSpider):
     custom_settings = {
         "DOWNLOAD_DELAY": 1.5,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
-        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 60000,
+        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 30000,
+        "CLOSESPIDER_TIMEOUT": 1800,   # Máximo 30 minutos
         "HTTPCACHE_ENABLED": False,
         "CLOSESPIDER_ITEMCOUNT": 0,
         "CLOSESPIDER_PAGECOUNT": 0,

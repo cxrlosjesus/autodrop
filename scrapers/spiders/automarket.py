@@ -32,7 +32,8 @@ class AutomarketSpider(AutoPulseSpider):
     custom_settings = {
         "DOWNLOAD_DELAY": 2.0,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 2,
-        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 60000,
+        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 30000,
+        "CLOSESPIDER_TIMEOUT": 1200,   # Máximo 20 minutos — evita cuelgues de Firebase
         "HTTPCACHE_ENABLED": False,
     }
 
