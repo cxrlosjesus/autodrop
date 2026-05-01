@@ -55,25 +55,45 @@ PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000   # 30 segundos
 PLAYWRIGHT_MAX_PAGES_PER_CONTEXT = 4
 
 # Contexto del browser — imitar un usuario real en Panamá
-PLAYWRIGHT_CONTEXTS = {
-    "default": {
-        "user_agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
-        ),
-        "viewport": {"width": 1920, "height": 1080},
-        "locale": "es-PA",
-        "timezone_id": "America/Panama",
-        "java_script_enabled": True,
-        "ignore_https_errors": True,
-        "extra_http_headers": {
-            "Accept-Language": "es-PA,es;q=0.9,en-US;q=0.8",
-            "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-        },
+_BROWSER_CONTEXT_BASE = {
+    "user_agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "viewport": {"width": 1920, "height": 1080},
+    "locale": "es-PA",
+    "timezone_id": "America/Panama",
+    "java_script_enabled": True,
+    "ignore_https_errors": True,
+    "extra_http_headers": {
+        "Accept-Language": "es-PA,es;q=0.9,en-US;q=0.8",
+        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+    },
+}
+
+# Proxy residencial para sitios con Cloudflare (carspot)
+# Formato: http://usuario:password@geo.iproyal.com:12321
+_PROXY_URL = os.getenv("RESIDENTIAL_PROXY_URL", "")
+_proxy_playwright = {}
+if _PROXY_URL:
+    from urllib.parse import urlparse as _urlparse
+    _p = _urlparse(_PROXY_URL)
+    _proxy_playwright = {
+        "proxy": {
+            "server": f"{_p.scheme}://{_p.hostname}:{_p.port}",
+            "username": _p.username or "",
+            "password": _p.password or "",
+        }
     }
+
+PLAYWRIGHT_CONTEXTS = {
+    # automarket y champion — sin proxy (no están bloqueados)
+    "default": _BROWSER_CONTEXT_BASE,
+    # carspot — con proxy residencial para pasar Cloudflare
+    "cloudflare_bypass": {**_BROWSER_CONTEXT_BASE, **_proxy_playwright},
 }
 
 # Bloquear recursos que no aportan datos: imágenes, videos, fuentes, CSS

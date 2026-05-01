@@ -41,6 +41,7 @@ class CarspotSpider(AutoPulseSpider):
         yield self.playwright_request(
             url=self.START_URL,
             callback=self.parse_listing_page,
+            meta={"playwright_context": "cloudflare_bypass"},
             page_methods=[
                 # El plugin STM Car Dealer carga listings via AJAX — necesita ~8s
                 PageMethod("wait_for_timeout", 8000),
@@ -93,7 +94,7 @@ class CarspotSpider(AutoPulseSpider):
                 yield self.playwright_request(
                     url=card["url"],
                     callback=self.parse_detail,
-                    meta={"card_data": card},
+                    meta={"card_data": card, "playwright_context": "cloudflare_bypass"},
                     page_methods=[
                         PageMethod("wait_for_load_state", "domcontentloaded"),
                         PageMethod("wait_for_timeout", 2000),

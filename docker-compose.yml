@@ -117,6 +117,7 @@ services:
       DATABASE_USER: ${POSTGRES_USER:-autopulse}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-autopulse_secret}
       DATABASE_NAME: ${POSTGRES_DB:-autopulse}
+      RESIDENTIAL_PROXY_URL: ${RESIDENTIAL_PROXY_URL:-}
     depends_on:
       - prefect
       - postgres
