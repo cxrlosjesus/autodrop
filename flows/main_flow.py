@@ -57,27 +57,27 @@ def run_spider(spider_name: str) -> dict:
 
     start = datetime.now(timezone.utc)
     log_path = Path(f"/logs/{spider_name}_{start.strftime('%Y%m%d_%H%M')}.log")
-
-    result = subprocess.run(
-        ["scrapy", "crawl", spider_name],
-        capture_output=True,
-        text=True,
-        cwd=str(SCRAPERS_DIR),
-        timeout=7000
-    )
-
-    # Guardar stderr al archivo de log (Scrapy escribe todo ahí)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    log_path.write_text(result.stdout + result.stderr, encoding="utf-8")
+
+    # Escribir al log en tiempo real (permite tail -f durante la ejecución)
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        result = subprocess.run(
+            ["scrapy", "crawl", spider_name],
+            stdout=log_file,
+            stderr=log_file,
+            cwd=str(SCRAPERS_DIR),
+            timeout=7000
+        )
 
     duration = (datetime.now(timezone.utc) - start).total_seconds()
+    output = log_path.read_text(encoding="utf-8")
 
     if result.returncode != 0:
-        logger.error(f"❌ Spider {spider_name} falló: {result.stderr[-500:]}")
+        logger.error(f"❌ Spider {spider_name} falló: {output[-500:]}")
         raise RuntimeError(f"Spider {spider_name} terminó con error code {result.returncode}")
 
-    # Parsear métricas del output capturado (ya no va a LOG_FILE)
-    metrics = _parse_scrapy_stats(result.stdout + result.stderr)
+    # Parsear métricas del log escrito
+    metrics = _parse_scrapy_stats(output)
     metrics["spider"] = spider_name
     metrics["duration_seconds"] = round(duration, 1)
 
