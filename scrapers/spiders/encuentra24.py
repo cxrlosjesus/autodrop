@@ -38,8 +38,8 @@ class Encuentra24Spider(AutoPulseSpider):
         "HTTPCACHE_ENABLED": False,
         "CLOSESPIDER_TIMEOUT": 7200,
         "HTTPPROXY_ENABLED": True,
-        "RETRY_TIMES": 3,
-        "RETRY_HTTP_CODES": [500, 502, 503, 504, 408, 429],
+        "RETRY_TIMES": 5,
+        "RETRY_HTTP_CODES": [500, 502, 503, 504, 408, 429, 403],
     }
 
     def __init__(self, *args, **kwargs):
