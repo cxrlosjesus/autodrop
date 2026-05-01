@@ -124,15 +124,13 @@ class AutoPulseSpider(scrapy.Spider):
 
     async def _apply_stealth_to_context(self, page) -> None:
         """
-        Aplica playwright-stealth al nivel del contexto del browser.
-        Todos los pages futuros del mismo contexto heredan los scripts automáticamente.
+        Aplica playwright-stealth a la página actual (afecta navegaciones futuras)
+        y al contexto para que nuevos pages también hereden los scripts.
         """
         try:
-            from playwright_stealth import StealthConfig
-            config = StealthConfig()
-            for script in config.enabled_evasions:
-                await page.context.add_init_script(script=script)
-            self.logger.info(f"playwright-stealth aplicado al contexto | spider={self.name}")
+            from playwright_stealth import stealth_async
+            await stealth_async(page)
+            self.logger.info(f"playwright-stealth aplicado | spider={self.name}")
         except ImportError:
             self.logger.warning("playwright-stealth no instalado — omitiendo stealth")
 
