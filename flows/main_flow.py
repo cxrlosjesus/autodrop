@@ -56,15 +56,19 @@ def run_spider(spider_name: str) -> dict:
     logger.info(f"🕷️ Iniciando spider: {spider_name}")
 
     start = datetime.now(timezone.utc)
+    log_path = Path(f"/logs/{spider_name}_{start.strftime('%Y%m%d_%H%M')}.log")
 
     result = subprocess.run(
-        ["scrapy", "crawl", spider_name,
-         "-s", f"LOG_FILE=/logs/{spider_name}_{start.strftime('%Y%m%d_%H%M')}.log"],
+        ["scrapy", "crawl", spider_name],
         capture_output=True,
         text=True,
         cwd=str(SCRAPERS_DIR),
         timeout=7000
     )
+
+    # Guardar stderr al archivo de log (Scrapy escribe todo ahí)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.write_text(result.stdout + result.stderr, encoding="utf-8")
 
     duration = (datetime.now(timezone.utc) - start).total_seconds()
 
@@ -72,7 +76,7 @@ def run_spider(spider_name: str) -> dict:
         logger.error(f"❌ Spider {spider_name} falló: {result.stderr[-500:]}")
         raise RuntimeError(f"Spider {spider_name} terminó con error code {result.returncode}")
 
-    # Parsear métricas del output de Scrapy
+    # Parsear métricas del output capturado (ya no va a LOG_FILE)
     metrics = _parse_scrapy_stats(result.stdout + result.stderr)
     metrics["spider"] = spider_name
     metrics["duration_seconds"] = round(duration, 1)
