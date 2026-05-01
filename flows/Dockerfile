@@ -18,7 +18,8 @@ RUN pip install --no-cache-dir \
     fake-useragent==1.5.1 \
     tenacity==8.3.0 \
     loguru==0.7.2 \
-    pydantic==2.7.1
+    pydantic==2.7.1 \
+    playwright-stealth==1.0.6
 
 # dbt para transformaciones
 RUN pip install --no-cache-dir dbt-postgres==1.7.*

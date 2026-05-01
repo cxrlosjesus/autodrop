@@ -57,6 +57,14 @@ class CarspotSpider(AutoPulseSpider):
             return
 
         try:
+            if response.status == 403:
+                self.logger.warning("403 en carspot — aplicando stealth y recargando")
+                await self._apply_stealth_to_context(page)
+                await page.reload(wait_until="domcontentloaded")
+                await page.wait_for_timeout(8000)  # STM Car Dealer AJAX
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await page.wait_for_timeout(2000)
+
             # Todo el inventario (173 autos) carga en una sola página via AJAX
             # El card text ya contiene: título, transmisión, km y precio
             cards = await page.evaluate("""

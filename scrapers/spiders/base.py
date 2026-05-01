@@ -121,6 +121,20 @@ class AutoPulseSpider(scrapy.Spider):
                 f"errores={self._errors_count} | spider={self.name}"
             )
 
+    async def _apply_stealth_to_context(self, page) -> None:
+        """
+        Aplica playwright-stealth al nivel del contexto del browser.
+        Todos los pages futuros del mismo contexto heredan los scripts automáticamente.
+        """
+        try:
+            from playwright_stealth import StealthConfig
+            config = StealthConfig()
+            for script in config.enabled_evasions:
+                await page.context.add_init_script(script=script)
+            self.logger.info(f"playwright-stealth aplicado al contexto | spider={self.name}")
+        except ImportError:
+            self.logger.warning("playwright-stealth no instalado — omitiendo stealth")
+
     def closed(self, reason):
         """Se llama automáticamente cuando el spider termina."""
         duration = (datetime.now(timezone.utc) - self._started_at).total_seconds()

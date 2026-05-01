@@ -68,6 +68,14 @@ class Encuentra24Spider(AutoPulseSpider):
             return
 
         try:
+            if response.status == 403:
+                self.logger.warning(f"[{category_url.split('/')[-1]}] p.{page_number}: 403 — aplicando stealth y recargando")
+                await self._apply_stealth_to_context(page)
+                await page.reload(wait_until="domcontentloaded")
+                await page.wait_for_timeout(6000)
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await page.wait_for_timeout(2000)
+
             # Extraer URLs via JS — solo autos (excluye motos y accesorios)
             listing_urls = await page.evaluate("""
                 () => {
