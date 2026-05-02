@@ -143,7 +143,9 @@ class ChampionSpider(AutoPulseSpider):
             brand_raw    = specs.get("marca", "") or self._brand_from_url(url)
             model_raw    = specs.get("modelo", "")
             year_raw     = specs.get("año", "") or self._extract_year(title)
-            mileage_raw  = specs.get("kilometraje", "")
+            # Champion es dealer de carros nuevos — "1 km" o "0 km" es ruido del sitio
+            mileage_raw_champ = specs.get("kilometraje", "")
+            mileage_raw = "" if mileage_raw_champ.strip() in ("0", "1", "0 km", "1 km") else mileage_raw_champ
             transmission = self._normalize_transmission(specs.get("transmisión", specs.get("transmision", "")))
             fuel_type    = specs.get("tipo de combustible", "")
             body_type    = specs.get("tipo", specs.get("categoría", specs.get("categoria", "")))

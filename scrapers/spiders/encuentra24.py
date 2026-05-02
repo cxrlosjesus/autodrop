@@ -107,7 +107,8 @@ class Encuentra24Spider(AutoPulseSpider):
         new_count = 0
         for path in raw_paths:
             full_url = self.BASE_URL + path
-            if full_url not in self._known_urls:
+            canonical = self._canonical_url(full_url)
+            if canonical not in self._known_urls:
                 new_count += 1
                 yield self._req(full_url, callback=self.parse_detail)
 
@@ -130,11 +131,21 @@ class Encuentra24Spider(AutoPulseSpider):
                         meta={"category_path": category_path, "page": p},
                     )
 
+    @staticmethod
+    def _canonical_url(url: str) -> str:
+        """Normaliza URL de Encuentra24 al ID numérico canónico.
+        /panama-es/autos-usados/hyundai-accent-2019-5-900/32253702
+        /panama-es/autos-usados/hyundai-accent-2019-6-900/32253702  <- mismo anuncio
+        → https://www.encuentra24.com/item/32253702
+        """
+        m = re.search(r'/(\d+)$', url)
+        return f"https://www.encuentra24.com/item/{m.group(1)}" if m else url
+
     def parse_detail(self, response):
-        url = response.url
+        url = self._canonical_url(response.url)
 
         if response.status != 200:
-            self.logger.warning(f"status {response.status} en {url} — omitiendo")
+            self.logger.warning(f"status {response.status} en {response.url} — omitiendo")
             return
 
         try:
