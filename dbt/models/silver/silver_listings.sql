@@ -132,6 +132,16 @@ normalized AS (
 
 ),
 
+-- Deduplicar por source_url dentro del batch actual (por si el mismo URL
+-- fue scrapeado múltiples veces): conservar el registro más reciente
+normalized_deduped AS (
+
+    SELECT DISTINCT ON (source_url) *
+    FROM normalized
+    ORDER BY source_url, scraped_at DESC
+
+),
+
 -- Aplicar filtros de calidad y calcular campos derivados
 final AS (
 
@@ -171,7 +181,7 @@ final AS (
         NOW()                                           AS created_at,
         NOW()                                           AS updated_at
 
-    FROM normalized
+    FROM normalized_deduped
 
     WHERE
         -- Filtros de calidad mínima
@@ -183,6 +193,19 @@ final AS (
         AND (
             year IS NULL
             OR year BETWEEN {{ var('min_vehicle_year') }} AND EXTRACT(YEAR FROM NOW())::INT + 1
+        )
+        -- Excluir listings de Venezuela que se cuelan en Encuentra24 (marketplace latinoamericano)
+        AND (
+            location_city IS NULL
+            OR LOWER(location_city) NOT IN (
+                'caracas', 'maracaibo', 'valencia', 'barquisimeto', 'maracay',
+                'barcelona', 'maturín', 'maturin', 'san cristóbal', 'san cristobal',
+                'mérida', 'merida', 'cabimas', 'ciudad bolívar', 'ciudad bolivar',
+                'punto fijo', 'los teques', 'guarenas', 'guatire', 'cumaná', 'cumana',
+                'puerto la cruz', 'puerto ordaz', 'san tomé', 'san tome',
+                'acarigua', 'porlamar', 'la victoria', 'cagua', 'turmero',
+                'calabozo', 'el tigre', 'zaraza', 'tucupita', 'carabobo'
+            )
         )
 
 )
