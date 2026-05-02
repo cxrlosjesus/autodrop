@@ -81,11 +81,16 @@ def run_spider(spider_name: str) -> dict:
     metrics["spider"] = spider_name
     metrics["duration_seconds"] = round(duration, 1)
 
+    items = metrics.get("item_scraped_count", 0)
     logger.info(
         f"✅ Spider {spider_name} completado | "
-        f"items={metrics.get('item_scraped_count', '?')} | "
+        f"items={items} | "
         f"duración={duration:.0f}s"
     )
+
+    # Si scrapeó 0 items y hay errores 403, reintenta (proxy IP rotation)
+    if items == 0 and "Gave up retrying" in output:
+        raise RuntimeError(f"Spider {spider_name}: 0 items scrapeados — todas las IPs bloqueadas")
 
     return metrics
 
