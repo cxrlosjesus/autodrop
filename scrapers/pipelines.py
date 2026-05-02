@@ -157,13 +157,17 @@ class NormalizerPipeline:
     def _parse_mileage(self, raw: str) -> int | None:
         if not raw:
             return None
-        numbers = re.findall(r"[\d,\.]+", str(raw))
+        s = str(raw)
+        # Primero buscar número explícitamente seguido de "km" para evitar
+        # confundir el año (2021) con el kilometraje cuando ambos aparecen
+        # en el mismo string (e.g. "2021 59,352 km")
+        km_matches = re.findall(r"([\d][,\.\d]*)\s*km", s, re.IGNORECASE)
+        numbers = km_matches if km_matches else re.findall(r"[\d,\.]+", s)
         if not numbers:
             return None
         clean = numbers[0].replace(",", "").replace(".", "")
         try:
             value = int(clean)
-            # Sanity check
             if 0 <= value <= 1_000_000:
                 return value
             return None
