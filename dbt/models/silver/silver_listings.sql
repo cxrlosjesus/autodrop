@@ -89,6 +89,11 @@ extracted AS (
         NULLIF(TRIM(raw_data->>'condition'), '')        AS condition,
         NULLIF(TRIM(raw_data->>'location_city'), '')    AS location_city,
         NULLIF(TRIM(raw_data->>'location_province'), '') AS location_province,
+        -- seller_name: campo directo (scrapes nuevos) o fallback al JSON-LD (scrapes viejos)
+        NULLIF(TRIM(COALESCE(
+            raw_data->>'seller_name',
+            raw_data->'extra_data'->'json_ld'->'offers'->'seller'->>'name'
+        )), '')                                         AS seller_name,
 
         -- Numéricos (ya parseados por el pipeline Python)
         (raw_data->>'price_usd')::NUMERIC(10,2)        AS price_usd,
@@ -168,6 +173,7 @@ final AS (
         condition,
         location_city,
         location_province,
+        seller_name,
         title,
         description,
         published_at,

@@ -45,6 +45,9 @@ class CarListingItem(scrapy.Item):
     doors           = scrapy.Field()   # 2, 4 (int)
     condition       = scrapy.Field()   # 'Nuevo', 'Usado'
 
+    # ── Vendedor ──
+    seller_name     = scrapy.Field()   # Nombre del vendedor/dealer
+
     # ── Localización ──
     location_city       = scrapy.Field()
     location_province   = scrapy.Field()

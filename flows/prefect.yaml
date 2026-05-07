@@ -1,0 +1,55 @@
+name: autopulse
+prefect-version: "2.20.0"
+
+build: null
+push: null
+
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+deployments:
+
+  # ── Spiders individuales — todos arrancan a las 2am hora Panamá ──────────
+
+  - name: Spider Encuentra24
+    entrypoint: main_flow.py:spider_encuentra24_flow
+    work_pool:
+      name: autopulse-pool
+    schedules:
+      - cron: "0 2 * * *"
+        timezone: "America/Panama"
+
+  - name: Spider Carspot
+    entrypoint: main_flow.py:spider_carspot_flow
+    work_pool:
+      name: autopulse-pool
+    schedules:
+      - cron: "0 2 * * *"
+        timezone: "America/Panama"
+
+  - name: Spider Automarket
+    entrypoint: main_flow.py:spider_automarket_flow
+    work_pool:
+      name: autopulse-pool
+    schedules:
+      - cron: "0 2 * * *"
+        timezone: "America/Panama"
+
+  - name: Spider Champion
+    entrypoint: main_flow.py:spider_champion_flow
+    work_pool:
+      name: autopulse-pool
+    schedules:
+      - cron: "0 2 * * *"
+        timezone: "America/Panama"
+
+  # ── dbt — corre a las 5am, cuando los spiders ya terminaron ─────────────
+
+  - name: DBT Pipeline
+    entrypoint: main_flow.py:dbt_pipeline_flow
+    work_pool:
+      name: autopulse-pool
+    schedules:
+      - cron: "0 5 * * *"
+        timezone: "America/Panama"
