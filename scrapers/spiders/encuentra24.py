@@ -73,7 +73,9 @@ class Encuentra24Spider(AutoPulseSpider):
             ))
             with engine.connect() as conn:
                 result = conn.execute(text(
-                    "SELECT source_url FROM bronze.raw_listings WHERE source_site = 'encuentra24'"
+                    "SELECT source_url FROM bronze.raw_listings"
+                    " WHERE source_site = 'encuentra24'"
+                    " AND scraped_at > NOW() - INTERVAL '2 days'"
                 ))
                 ids = set()
                 for (url,) in result:
