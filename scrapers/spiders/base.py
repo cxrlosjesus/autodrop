@@ -28,17 +28,13 @@ class AutoPulseSpider(scrapy.Spider):
     name = None
     version = "1.0.0"
     uses_playwright = False         # True si el sitio necesita JS rendering
-    
-    # Métricas del run
-    _listings_found = 0
-    _errors_count = 0
-    _run_id = None
-    _started_at = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._run_id = str(uuid.uuid4())
-        self._started_at = datetime.now(timezone.utc)
+        self._run_id        = str(uuid.uuid4())
+        self._started_at    = datetime.now(timezone.utc)
+        self._listings_found = 0
+        self._errors_count   = 0
         
         logger.info(
             f"🚀 Spider iniciado: {self.name} v{self.version} | "

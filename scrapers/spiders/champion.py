@@ -3,8 +3,7 @@ AutoPulse Panamá — Spider: Champion Motors
 URL: championmotors.com.pa/cars
 
 El listing carga los cards via JS (necesita Playwright).
-Los detalles son server-rendered (HTTP puro, más rápido).
-Paginación via ?page=N. Specs en ul.details-list.
+Los detalles son server-rendered — se extraen con CSS directo (HTTP puro).
 """
 import re
 
@@ -16,7 +15,7 @@ from .base import AutoPulseSpider
 
 class ChampionSpider(AutoPulseSpider):
     name = "champion"
-    version = "1.0.0"
+    version = "1.1.0"
     uses_playwright = True
 
     BASE_URL  = "https://championmotors.com.pa"
@@ -28,8 +27,8 @@ class ChampionSpider(AutoPulseSpider):
     custom_settings = {
         "DOWNLOAD_DELAY": 1.5,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
-        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 30000,
-        "CLOSESPIDER_TIMEOUT": 1800,   # Máximo 30 minutos
+        "PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT": 20000,
+        "CLOSESPIDER_TIMEOUT": 1800,
         "HTTPCACHE_ENABLED": False,
         "CLOSESPIDER_ITEMCOUNT": 0,
         "CLOSESPIDER_PAGECOUNT": 0,
@@ -71,16 +70,8 @@ class ChampionSpider(AutoPulseSpider):
             self.logger.info(f"[{cat_name}] Página {page_number}: {len(car_urls)} autos")
 
             for url in car_urls:
-                yield self.playwright_request(
-                    url=url,
-                    callback=self.parse_detail,
-                    page_methods=[
-                        PageMethod("wait_for_load_state", "domcontentloaded"),
-                        PageMethod("wait_for_timeout", 1500),
-                    ],
-                )
+                yield self.standard_request(url=url, callback=self.parse_detail)
 
-            # Paginación
             if car_urls and page_number < 30:
                 next_url = f"{category_url.rstrip('/')}?page={page_number + 1}"
                 yield self.playwright_request(
@@ -97,60 +88,45 @@ class ChampionSpider(AutoPulseSpider):
             if page:
                 await page.close()
 
-    async def parse_detail(self, response):
-        page: Page = response.meta.get("playwright_page")
+    def parse_detail(self, response):
         url = response.url
-
         try:
-            # Extraer todos los datos via JS desde la página renderizada
-            data = await page.evaluate("""
-                () => {
-                    // Título
-                    const h1 = document.querySelector('h1');
-                    const title = h1 ? h1.innerText.trim() : '';
+            title = response.css("h1::text").get("").strip()
+            price_raw = re.sub(
+                r"[^\d,.]", "",
+                " ".join(response.css("div.bg-blue-main::text").getall())
+            ).strip()
 
-                    // Precio: primer div.bg-blue-main en el documento
-                    const priceEl = document.querySelector('div.bg-blue-main');
-                    const priceText = priceEl ? priceEl.innerText.replace(/\\s+/g, ' ').trim() : '';
+            # Extraer todos los "Clave: Valor" de li en la página
+            specs = {}
+            for li in response.css("li"):
+                text = " ".join(li.css("::text").getall()).strip()
+                if ":" in text:
+                    key, _, val = text.partition(":")
+                    k = key.strip().lower()
+                    v = val.strip()
+                    if k and v and k not in specs:
+                        specs[k] = v
 
-                    // Specs desde ul.details-list
-                    const specs = {};
-                    document.querySelectorAll('ul.details-list li').forEach(li => {
-                        const text = li.innerText.replace(/\\s+/g, ' ').trim();
-                        const idx = text.indexOf(':');
-                        if (idx > 0) {
-                            const key = text.slice(0, idx).trim().toLowerCase();
-                            const val = text.slice(idx + 1).trim();
-                            if (key && val) specs[key] = val;
-                        }
-                    });
-
-                    // Descripción: párrafos largos
-                    const paras = Array.from(document.querySelectorAll('p'))
-                        .map(p => p.innerText.trim())
-                        .filter(t => t.length > 80);
-
-                    return { title, priceText, specs, description: paras.join(' ') };
-                }
-            """)
-
-            title    = data.get("title", "")
-            specs    = data.get("specs", {})
-            # Precio: extraer solo dígitos y comas del texto "$  12,899"
-            price_raw = re.sub(r"[^\d,.]", "", data.get("priceText", "")).strip()
-            description = data.get("description", "")
+            # Kilometraje desde ul.short-info (primer elemento = este auto)
+            short_info = response.css("ul.short-info li::text").getall()
+            mileage_raw = short_info[1].strip() if len(short_info) > 1 else ""
 
             brand_raw    = specs.get("marca", "") or self._brand_from_url(url)
             model_raw    = specs.get("modelo", "")
-            year_raw     = specs.get("año", "") or self._extract_year(title)
-            # Champion es dealer de carros nuevos — "1 km" o "0 km" es ruido del sitio
-            mileage_raw_champ = specs.get("kilometraje", "")
-            mileage_raw = "" if mileage_raw_champ.strip() in ("0", "1", "0 km", "1 km") else mileage_raw_champ
-            transmission = self._normalize_transmission(specs.get("transmisión", specs.get("transmision", "")))
-            fuel_type    = specs.get("tipo de combustible", "")
-            body_type    = specs.get("tipo", specs.get("categoría", specs.get("categoria", "")))
+            year_raw     = specs.get("año", "") or specs.get("ano", "") or self._extract_year(title)
+            transmission = self._normalize_transmission(
+                specs.get("transmisión", specs.get("transmision", ""))
+            )
+            fuel_type    = specs.get("combustible", "")
+            body_type    = specs.get("carrocería", specs.get("carroceria", ""))
             color        = specs.get("color", "")
-            condition    = specs.get("condición", specs.get("condicion", ""))
+            condition_raw = specs.get("condición", specs.get("condicion", ""))
+
+            # Ignorar km=0/1 (ruido de carros nuevos sin odómetro real)
+            km_digits = re.sub(r"[^\d]", "", mileage_raw)
+            if km_digits in ("0", "1"):
+                mileage_raw = ""
 
             item = self.create_item(
                 source_url    = url,
@@ -164,9 +140,8 @@ class ChampionSpider(AutoPulseSpider):
                 body_type     = body_type,
                 fuel_type     = fuel_type,
                 color         = color,
-                condition     = self._normalize_condition(condition),
+                condition     = self._normalize_condition(condition_raw),
                 location_city = "Ciudad de Panamá",
-                description   = description,
                 extra_data    = {"specs": specs},
             )
 
@@ -176,9 +151,6 @@ class ChampionSpider(AutoPulseSpider):
         except Exception as e:
             self._errors_count += 1
             self.logger.error(f"Error parseando {url}: {e}")
-        finally:
-            if page:
-                await page.close()
 
     # ── Helpers ─────────────────────────────────────────────────
 
@@ -189,7 +161,6 @@ class ChampionSpider(AutoPulseSpider):
     def _brand_from_url(self, url: str) -> str:
         """Extrae la marca desde la URL: /cars/{brand}/{model}/{id}"""
         parts = url.rstrip("/").split("/")
-        # /cars/nissan/qashqai/1217 → index -3 = nissan
         if len(parts) >= 4:
             return parts[-3].replace("-", " ").title()
         return ""
