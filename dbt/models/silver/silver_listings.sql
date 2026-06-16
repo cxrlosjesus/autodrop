@@ -11,7 +11,7 @@
           deactivated_at = NOW()
       WHERE
           is_active  = TRUE
-          AND last_seen_at < NOW() - INTERVAL '{{ var("active_window_days") }} days'
+          AND last_seen_at < NOW() - INTERVAL '1 day' * {{ var("active_window_days") }}
       """
     ]
   )
