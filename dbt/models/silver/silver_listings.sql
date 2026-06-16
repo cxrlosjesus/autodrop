@@ -11,7 +11,7 @@
           deactivated_at = NOW()
       WHERE
           is_active  = TRUE
-          AND last_seen_at < NOW() - INTERVAL '1 day' * {{ var("active_window_days") }}
+          AND last_seen_at < NOW() - INTERVAL '7 days'  -- sync con active_window_days en dbt_project.yml
       """
     ]
   )
