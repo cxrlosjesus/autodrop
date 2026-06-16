@@ -184,9 +184,17 @@ class Encuentra24Spider(AutoPulseSpider):
             title = response.css("h1::text").get("").strip() or json_ld.get("name", "")
 
             price_offers = json_ld.get("offers", {})
+            json_ld_price = price_offers.get("price") if isinstance(price_offers, dict) else None
             price_raw = (
-                str(price_offers.get("price", "")) if price_offers.get("price")
-                else (response.css("main [class*='price']::text").get("") or "").strip()
+                str(json_ld_price) if json_ld_price
+                # XPath string() recoge todo el texto del elemento incluyendo hijos
+                # (::text solo captura nodos directos, perdiendo el número cuando está
+                # en un <span> hijo del elemento con clase 'price')
+                else (
+                    response.xpath(
+                        "//main//*[contains(@class,'price')][1]"
+                    ).xpath("string()").get("") or ""
+                ).strip()
             )
             seller_info = price_offers.get("seller", {})
             seller_name = seller_info.get("name", "").strip() if isinstance(seller_info, dict) else ""

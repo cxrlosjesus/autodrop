@@ -96,7 +96,11 @@ extracted AS (
         )), '')                                         AS seller_name,
 
         -- Numéricos (ya parseados por el pipeline Python)
-        (raw_data->>'price_usd')::NUMERIC(10,2)        AS price_usd,
+        -- Fallback al JSON-LD por si el pipeline capturó price_raw='$' (nodo hijo no capturado)
+        COALESCE(
+            NULLIF(raw_data->>'price_usd', '')::NUMERIC(10,2),
+            NULLIF(raw_data->'extra_data'->'json_ld'->'offers'->>'price', '')::NUMERIC(10,2)
+        )                                               AS price_usd,
         (raw_data->>'mileage_km')::INTEGER              AS mileage_km,
         (raw_data->>'year')::SMALLINT                   AS year,
         (raw_data->>'doors')::SMALLINT                  AS doors,
