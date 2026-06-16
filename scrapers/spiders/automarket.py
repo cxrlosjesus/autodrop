@@ -242,6 +242,10 @@ class AutomarketSpider(AutoPulseSpider):
         clean = re.sub(r"[\d,\.]+\s*km", "", clean, flags=re.IGNORECASE)
         clean = re.sub(r"\b(19[9]\d|20[0-3]\d)\b", "", clean)
         clean = re.sub(r"\b(AUTOMATICO|AUTOMÁTICO|AUTOMATIC|MANUAL|CVT)\b", "", clean, flags=re.IGNORECASE)
+        # Eliminar labels del HTML que se cuelan en innerText: "Km :", "Año :", "Transmision :"
+        clean = re.sub(r"\bKm\s*:", "", clean, flags=re.IGNORECASE)
+        clean = re.sub(r"\bA[ñn]o\s*:", "", clean, flags=re.IGNORECASE)
+        clean = re.sub(r"\bTransmisi[oó]n\s*:", "", clean, flags=re.IGNORECASE)
         clean = re.sub(r"\s+", " ", clean).strip()
 
         if clean:

@@ -38,7 +38,7 @@ models:
 vars:
   autopulse:
     # Ventana de datos activos (anuncios vistos en últimos N días se consideran activos)
-    active_window_days: 3
+    active_window_days: 7
     # Outliers de precio (fuera de rango se excluyen de métricas)
     price_min_usd: 500
     price_max_usd: 500000
