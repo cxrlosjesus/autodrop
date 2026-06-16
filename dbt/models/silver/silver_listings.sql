@@ -11,7 +11,7 @@
           deactivated_at = NOW()
       WHERE
           is_active  = TRUE
-          AND last_seen_at < NOW() - INTERVAL '3 days'
+          AND last_seen_at < NOW() - INTERVAL '{{ var("active_window_days") }} days'
       """
     ]
   )
@@ -123,8 +123,19 @@ normalized AS (
             INITCAP(LOWER(TRIM(e.brand_raw)))
         )                                               AS brand,
 
-        -- Modelo: limpiar y capitalizar
-        INITCAP(LOWER(TRIM(e.model_raw)))               AS model,
+        -- Modelo: limpiar labels de AutoMarket ("Km : Año : Transmision :") y capitalizar
+        INITCAP(LOWER(TRIM(
+            REGEXP_REPLACE(
+                REGEXP_REPLACE(
+                    REGEXP_REPLACE(
+                        COALESCE(e.model_raw, ''),
+                        '\s*Km\s*:.*$', '', 'i'
+                    ),
+                    '\s*:\s*A[ñn]o\s*:.*$', '', 'i'
+                ),
+                '\s*:\s*Transmisi[oó]n\s*:.*$', '', 'i'
+            )
+        )))                                             AS model,
 
         -- first_seen_at real: preservar el original si el listing ya existía
         COALESCE(ex.first_seen_at, e.scraped_at)        AS real_first_seen_at
